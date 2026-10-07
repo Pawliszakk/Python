@@ -1,0 +1,22 @@
+[Unit]
+Description=Zabbix Web Apache Mysql Quadlet Container
+After=network-online.target
+
+[Container]
+ContainerName=zabbix-web-apache-mysql
+Image=docker.io/zabbix/zabbix-web-apache-mysql:ubuntu-7.0.29
+PublishPort=8443:8443
+PublishPort=8080:8080
+Network=zabbix.network
+
+Environment=DB_SERVER_HOST=mysql
+Environment=DB_SERVER_PORT=3306
+Environment=MYSQL_USER=zabbix
+Environment=MYSQL_PASSWORD=testpass
+Environment=ZBX_SERVER_HOST=zabbix-server-mysql
+Environment=PHP_TZ=Europe/Warsaw
+[Service]
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

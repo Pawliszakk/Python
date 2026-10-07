@@ -1,0 +1,26 @@
+[Unit]
+Description=Zabbix Server Mysql Quadlet Container
+After=network-online.target
+
+[Container]
+ContainerName=zabbix-server-mysql
+Image=docker.io/zabbix/zabbix-server-mysql:7.0.29-ubuntu
+Network=zabbix.network
+PublishPort=10051:10051
+AddCapability=NET_RAW
+
+Environment=DB_SERVER_HOST=mysql
+Environment=DB_SERVER_PORT=3306
+Environment=MYSQL_USER=zabbix
+Environment=MYSQL_PASSWORD=testpass
+Environment=ZBX_CACHESIZE=512M
+Environment=ZBX_HISTORYCACHESIZE=128M
+Environment=ZBX_TRENDCACHESIZE=128M
+Environment=ZBX_VALUECACHESIZE=256M
+
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
