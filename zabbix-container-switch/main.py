@@ -89,8 +89,9 @@ def get_available_tags(current_images,images: list[str]) -> None:
                     full_image = f"{image}:ubuntu-7.0.{tag}"
                     print(f"{i}. {full_image}")
             print("\n")
-            user_choice = input(f"Please type number of tag to update or leave empty for latest image: ").strip()
-
+            user_choice = input(f"Please type number of tag to update (1 - len{newer_tags_than_running}): ").strip()
+            if user_choice > 0 and user_choice <= len(newer_tags_than_running):
+                print(user_choice)
 
 
         else:
