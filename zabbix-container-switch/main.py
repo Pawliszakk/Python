@@ -43,7 +43,7 @@ def get_current_images(quadlets_path: str, quadlets: list[str]) -> list[str]:
 def get_available_tags(current_images,images: list[str]) -> None:
 
     current_images_tags = {}
-
+    chosen_images = {}
 
     for image in current_images:
         
@@ -89,15 +89,21 @@ def get_available_tags(current_images,images: list[str]) -> None:
                     full_image = f"{image}:ubuntu-7.0.{tag}"
                     print(f"{i}. {full_image}")
             print("\n")
-            user_choice = input(f"Please type number of tag to update (1 - len{newer_tags_than_running}): ").strip()
+            
+            user_choice = int(input(f"Please type number of tag to update (1 - {len(newer_tags_than_running)}): ").strip())
             if user_choice > 0 and user_choice <= len(newer_tags_than_running):
-                print(user_choice)
+                
+                new_tag = sorted(newer_tags_than_running,reverse=True)[user_choice - 1]
 
+                chosen_images.update({
+                    f"{image}": new_tag
+                })
 
         else:
             print("Newer images than running were not found.")
         print("\n")
-
+    print(current_images_tags)
+    print(chosen_images)
 
     #Check Web
 
