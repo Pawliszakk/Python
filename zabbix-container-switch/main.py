@@ -1,21 +1,8 @@
-#1. Check available images, web and server
-#2. Check running images, web and server
-#3. if images the same - nothing
-#4. list available images and input for image to switch
-#5. Switch images in files
-#6. Stop Server, Stop Web
-#7. Start Server, wait for running, Start Web
-
-# zabbix-server-mysql.container
-# docker.io/zabbix/zabbix-server-mysql:7.0.29-ubuntu
-
-# zabbix-web-apache-mysql.container
-# docker.io/zabbix/zabbix-web-apache-mysql:7.0.29-ubuntu
 import subprocess
 import json
 from pathlib import Path
 import re
-
+import time
 
 def get_current_images(quadlets_path: str, quadlets: list[str]) -> list[str]:
     
@@ -34,13 +21,12 @@ def get_current_images(quadlets_path: str, quadlets: list[str]) -> list[str]:
         except Exception as e:
             print("Something went wrong with quadlets reading...")
             print(e)
-            return
     print("\n")
     return current_images
     
 
 
-def get_available_tags(current_images,images: list[str]) -> None:
+def get_available_tags(current_images,images: list[str]) -> dict[str,int]:
 
     current_images_tags = {}
     chosen_images = {}
@@ -102,18 +88,62 @@ def get_available_tags(current_images,images: list[str]) -> None:
         else:
             print("Newer images than running were not found.")
         print("\n")
-    print(current_images_tags)
-    print(chosen_images)
+    return chosen_images
+
 
     #Check Web
 
+def change_images_in_prod(new_image_tags: dict[str,int],quadlets_path: str, quadlets: list[str]):
+    for quadlet in quadlets:
+
+        path = Path(quadlets_path + quadlet)
+        lines = path.read_text().splitlines()
+
+        for i,line in enumerate(lines):
+        
+            if line.startswith("Image="):
+                running_container_image = line.split("=")[1].split(":")[0]
+                running_image_tag = line.split("=")[1].split(":")[1]
+                new_container_image = f"{running_container_image}:ubuntu-7.0.{new_image_tags[running_container_image]}"
+                pull_container_image_command = f"podman pull {new_container_image}"
+                lines[i] = f"Image={new_container_image}"
+                print(f"Updating {running_container_image} {running_image_tag} -> {new_container_image}")
+
+                subprocess.run(pull_container_image_command.split())
+        
+        path.write_text("\n".join(lines) + "\n")
+
+    stop_web_apache_mysql_command = "systemctl stop --user zabbix-web-apache-mysql.service"
+    stop_server_mysql_command = "systemctl stop --user zabbix-server-mysql.service"
+    daemon_reload_command = "systemctl daemon-reload --user"
+    start_web_apache_mysql_command = "systemctl start --user zabbix-web-apache-mysql.service"
+    start_server_mysql_command = "systemctl start --user zabbix-server-mysql.service"
+
+    print("Stopping web apache container...")
+    subprocess.run(stop_web_apache_mysql_command.split())
+    print("Stopping server container...")
+
+    subprocess.run(stop_server_mysql_command.split())
+    print("Reloading daemon...")
+    subprocess.run(daemon_reload_command .split())
+    time.sleep(3)
+    print("Starting server...")
+    subprocess.run(start_server_mysql_command.split())
+    time.sleep(10)
+    print("Starting web apache...")
+    subprocess.run(start_web_apache_mysql_command.split())
+    time.sleep(10)
+
+    subprocess.run(["podman","ps"])
+
+                
 
 def main():
-    # "/home/opawliszak/zabbix-quadlets/"
-    # "/home/zabbix-runner/.config/containers/systemd/"
-    current_images = get_current_images("/Users/oskarpawliszak/git/SRE-PYTHON/zabbix-container-switch/",["zabbix-server-mysql.container","zabbix-web-apache-mysql.container"])
-    get_available_tags(current_images,["docker.io/zabbix/zabbix-server-mysql","docker.io/zabbix/zabbix-web-apache-mysql"])
+    quadlets_path = "/home/zabbix-runner/.config/containers/systemd/"
+    quadlets = ["zabbix-server-mysql.container","zabbix-web-apache-mysql.container"]
 
+    current_images = get_current_images(quadlets_path, quadlets)
+    chosen_images = get_available_tags(current_images,["docker.io/zabbix/zabbix-server-mysql","docker.io/zabbix/zabbix-web-apache-mysql"])
+    change_images_in_prod(chosen_images,quadlets_path,quadlets)
 if __name__ == "__main__":
     main()
-
